@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, Copy, Download, Check, FileText, Filter } from "lucide-react";
+import { Search, Copy, Download, Check } from "lucide-react";
 import { ExtractedDocumentData } from "@/types";
 import { copyToClipboard, downloadFile } from "@/lib/export-utils";
 
@@ -44,7 +44,7 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
       part.toLowerCase() === query.toLowerCase() ? (
         <mark
           key={idx}
-          className="bg-amber-300 dark:bg-amber-500/40 text-slate-900 dark:text-amber-200 px-0.5 rounded font-bold"
+          className="bg-amber-200 dark:bg-amber-500/40 text-slate-900 dark:text-amber-100 px-0.5 rounded"
         >
           {part}
         </mark>
@@ -55,10 +55,10 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl shadow-sm overflow-hidden flex flex-col h-[650px]">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col h-[600px]">
       
       {/* Controls & Search */}
-      <div className="p-4 border-b border-slate-100 dark:border-unthinkable-border bg-slate-50/50 dark:bg-unthinkable-card/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         
         {/* Search Bar */}
         <div className="relative flex-1 max-w-md">
@@ -67,8 +67,8 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search within extracted text..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#5dd667]"
+            placeholder="Search extracted text..."
+            className="w-full pl-9 pr-4 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-emerald-500"
           />
         </div>
 
@@ -78,7 +78,7 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
             <select
               value={selectedPage}
               onChange={(e) => setSelectedPage(e.target.value === "all" ? "all" : Number(e.target.value))}
-              className="px-3 py-2 rounded-xl bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none"
+              className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none"
             >
               <option value="all">All Pages ({data.pages.length})</option>
               {data.pages.map((p) => (
@@ -91,15 +91,15 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
 
           <button
             onClick={handleCopy}
-            className="px-3 py-2 rounded-xl bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5 transition-colors"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? "Copied" : "Copy"}</span>
           </button>
 
           <button
             onClick={handleDownloadTxt}
-            className="px-3 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+            className="px-3 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-700 text-white text-xs font-medium flex items-center gap-1.5 hover:bg-slate-700 transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             <span>.TXT</span>
@@ -109,21 +109,16 @@ export const ExtractedTextViewer: React.FC<ExtractedTextViewerProps> = ({
       </div>
 
       {/* Stats Bar */}
-      <div className="px-5 py-2.5 bg-slate-100/60 dark:bg-unthinkable-card/60 border-b border-slate-200/60 dark:border-unthinkable-border/60 flex items-center justify-between text-xs text-slate-500 dark:text-unthinkable-textMuted font-mono">
-        <div className="flex items-center space-x-4">
+      <div className="px-4 py-2 bg-slate-100/50 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+        <div className="flex items-center space-x-3">
           <span>Words: {data.wordCount.toLocaleString()}</span>
           <span>•</span>
           <span>Chars: {data.charCount.toLocaleString()}</span>
-          <span>•</span>
-          <span>Est. Reading: ~{data.estimatedReadingMinutes} min</span>
         </div>
-        <span className="text-[11px] font-bold text-[#5dd667]">
-          Confidence: {Math.round((data.confidence || 0.95) * 100)}%
-        </span>
       </div>
 
       {/* Text Area */}
-      <div className="flex-1 p-5 sm:p-6 overflow-y-auto font-mono text-xs sm:text-sm leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap select-text bg-white dark:bg-unthinkable-panel">
+      <div className="flex-1 p-4 sm:p-5 overflow-y-auto font-mono text-xs sm:text-sm leading-relaxed text-slate-800 dark:text-slate-200 whitespace-pre-wrap select-text bg-white dark:bg-slate-900">
         {highlightMatches(displayedText, searchQuery)}
       </div>
 

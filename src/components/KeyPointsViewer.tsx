@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Calendar, DollarSign, CheckSquare, Tag, Building, Sparkles, Check } from "lucide-react";
+import { Calendar, DollarSign, CheckSquare, Tag, Building, Check } from "lucide-react";
 import { ExtractedEntities } from "@/types";
 
 interface KeyPointsViewerProps {
@@ -16,43 +16,40 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       
-      {/* Action Items & Deliverables */}
-      <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl p-6 sm:p-8 shadow-sm">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-          <CheckSquare className="w-4 h-4 text-[#5dd667]" />
-          <span>Action Items & High-Priority Responsibilities</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#5dd667]/15 text-[#2d7534] dark:text-[#5dd667]">
-            {entities.actionItems.length} items
-          </span>
+      {/* Action Items */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+          <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          <span>Action Items & Tasks</span>
         </h3>
 
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {entities.actionItems.map((action, idx) => {
             const isChecked = !!checkedItems[idx];
             return (
               <div
                 key={idx}
                 onClick={() => toggleCheck(idx)}
-                className={`p-3.5 rounded-xl border flex items-start space-x-3 cursor-pointer transition-all ${
+                className={`p-3 rounded-lg border flex items-start space-x-3 cursor-pointer transition-all ${
                   isChecked
-                    ? "bg-slate-50 dark:bg-unthinkable-card/30 border-slate-200 dark:border-unthinkable-border opacity-60"
-                    : "bg-white dark:bg-unthinkable-card border-slate-200 dark:border-unthinkable-border hover:border-[#5dd667]/50 shadow-sm"
+                    ? "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 opacity-60"
+                    : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800"
                 }`}
               >
                 <div
-                  className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border transition-all ${
+                  className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-all ${
                     isChecked
-                      ? "bg-[#5dd667] border-[#5dd667] text-[#0b0f17]"
-                      : "border-slate-300 dark:border-unthinkable-borderLight hover:border-[#5dd667]"
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "border-slate-300 dark:border-slate-600"
                   }`}
                 >
-                  {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                 </div>
 
                 <p
-                  className={`text-sm leading-relaxed ${
+                  className={`text-xs sm:text-sm leading-relaxed ${
                     isChecked
                       ? "line-through text-slate-400 dark:text-slate-500"
                       : "text-slate-800 dark:text-slate-200"
@@ -66,74 +63,63 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Dates & Milestones */}
-        <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-              <Calendar className="w-4 h-4 text-blue-500" />
-              <span>Extracted Dates & Milestones</span>
-            </h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2.5 uppercase tracking-wider">
+            <Calendar className="w-3.5 h-3.5 text-blue-500" />
+            <span>Dates & Deadlines</span>
+          </h3>
 
-            <div className="flex flex-wrap gap-2">
-              {entities.datesAndDeadlines.map((date, idx) => (
-                <div
-                  key={idx}
-                  className="px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-1.5"
-                >
-                  <Calendar className="w-3 h-3 text-blue-500" />
-                  <span>{date}</span>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-1.5">
+            {entities.datesAndDeadlines.map((date, idx) => (
+              <span
+                key={idx}
+                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                {date}
+              </span>
+            ))}
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-unthinkable-textDim mt-4 pt-3 border-t border-slate-100 dark:border-unthinkable-border">
-            Schedules, deadlines, and fiscal target dates detected in document text.
-          </p>
         </div>
 
         {/* Metrics & Figures */}
-        <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-              <DollarSign className="w-4 h-4 text-[#5dd667]" />
-              <span>Quantitative Metrics & Numbers</span>
-            </h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2.5 uppercase tracking-wider">
+            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Numbers & Metrics</span>
+          </h3>
 
-            <div className="flex flex-wrap gap-2">
-              {entities.metricsAndNumbers.map((metric, idx) => (
-                <div
-                  key={idx}
-                  className="px-3 py-1.5 rounded-lg bg-[#5dd667]/15 dark:bg-[#5dd667]/10 border border-[#5dd667]/30 text-xs font-bold text-[#1e6124] dark:text-[#5dd667] flex items-center gap-1.5"
-                >
-                  <span>{metric}</span>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap gap-1.5">
+            {entities.metricsAndNumbers.map((metric, idx) => (
+              <span
+                key={idx}
+                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+              >
+                {metric}
+              </span>
+            ))}
           </div>
-          <p className="text-[11px] text-slate-400 dark:text-unthinkable-textDim mt-4 pt-3 border-t border-slate-100 dark:border-unthinkable-border">
-            Financial figures, SLA percentages, throughput benchmarks, and totals.
-          </p>
         </div>
 
       </div>
 
-      {/* Core Topics & Organizations */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Topics & Organizations */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* Key Terminology */}
-        <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-            <Tag className="w-4 h-4 text-purple-500" />
-            <span>Key Terminology & Topic Keywords</span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2.5 uppercase tracking-wider">
+            <Tag className="w-3.5 h-3.5 text-purple-500" />
+            <span>Key Terms</span>
           </h3>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {entities.keyTermsAndTopics.map((term, idx) => (
               <span
                 key={idx}
-                className="px-2.5 py-1 rounded-md bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 text-xs font-medium text-purple-800 dark:text-purple-300"
+                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
               >
                 #{term}
               </span>
@@ -142,17 +128,17 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
         </div>
 
         {/* Organizations */}
-        <div className="bg-white dark:bg-unthinkable-panel border border-slate-200 dark:border-unthinkable-border rounded-2xl p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-            <Building className="w-4 h-4 text-amber-500" />
-            <span>Named Organizations & Entities</span>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-2.5 uppercase tracking-wider">
+            <Building className="w-3.5 h-3.5 text-amber-500" />
+            <span>Entities & Names</span>
           </h3>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {entities.organizationsAndNames.map((org, idx) => (
               <span
                 key={idx}
-                className="px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs font-semibold text-amber-800 dark:text-amber-300"
+                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
               >
                 {org}
               </span>

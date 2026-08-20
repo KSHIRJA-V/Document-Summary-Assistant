@@ -18,7 +18,6 @@ export type ProcessingStep =
   | "extracting_pdf"
   | "running_ocr"
   | "generating_summary"
-  | "analyzing_readability"
   | "ready"
   | "error";
 
@@ -48,7 +47,6 @@ export interface ExtractedDocumentData {
 }
 
 export type SummaryLength = "short" | "medium" | "long";
-export type SummaryFormat = "executive" | "bullets" | "technical" | "faq";
 
 export interface SummarySection {
   title: string;
@@ -66,37 +64,13 @@ export interface ExtractedEntities {
 
 export interface SummaryData {
   length: SummaryLength;
-  format: SummaryFormat;
   headline: string;
   overview: string;
   keyTakeaways: string[];
   sections: SummarySection[];
   entities: ExtractedEntities;
-  faqItems?: Array<{ question: string; answer: string }>;
   wordCount: number;
   generatedAt: string;
-}
-
-export interface ReadabilityMetrics {
-  fleschReadingEase: number; // 0 - 100
-  fleschKincaidGrade: number; // e.g. 8.4
-  readingGradeLabel: string; // e.g. "8th Grade (Conversational)"
-  complexityBadge: "Easy" | "Moderate" | "Advanced" | "Complex";
-  avgSentenceLengthWords: number;
-  avgSyllablesPerWord: number;
-  passiveVoicePercentage: number;
-  sentimentTone: "Professional & Objective" | "Urgent & Direct" | "Academic & Analytical" | "Casual & Friendly";
-  sentimentScore: number; // -1 to 1
-}
-
-export interface ImprovementSuggestion {
-  id: string;
-  category: "clarity" | "structure" | "conciseness" | "grammar_tone" | "actionability";
-  severity: "high" | "medium" | "low" | "success";
-  title: string;
-  description: string;
-  recommendation: string;
-  impact: string;
 }
 
 export interface DocumentAnalysisResult {
@@ -106,15 +80,6 @@ export interface DocumentAnalysisResult {
     medium: SummaryData;
     long: SummaryData;
   };
-  readability: ReadabilityMetrics;
-  suggestions: ImprovementSuggestion[];
-}
-
-export interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
 }
 
 export interface SampleDocPreset {
@@ -131,8 +96,4 @@ export interface SampleDocPreset {
 
 export interface UserAppSettings {
   theme: "dark" | "light";
-  apiKey?: string;
-  aiProvider: "gemini" | "groq" | "openai" | "built-in";
-  highlightKeywords: boolean;
-  autoSpeakSummary: boolean;
 }
