@@ -138,7 +138,8 @@ export default function HomePage() {
       }
 
       if (!extractedData.cleanText.trim()) {
-        throw new Error("No readable text could be extracted from this document.");
+        extractedData.cleanText = "No clear text was detected in this image. You can paste or type text directly using the Paste Text tab, or upload a higher-contrast scan.";
+        extractedData.rawText = extractedData.cleanText;
       }
 
       setProgressState({

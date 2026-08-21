@@ -1,40 +1,31 @@
 import { ExtractedDocumentData } from "@/types";
 
 /**
- * Optimizes and resizes image on HTML5 Canvas to achieve optimal OCR speed and clarity.
- * Downscales oversized images (which dramatically reduces OCR processing time).
+ * Converts a File to a Base64 data URL and scales down oversized images for rapid OCR.
  */
-export async function optimizeImageForOcr(imageFile: File): Promise<Blob> {
+export async function fileToOptimizedDataUrl(file: File): Promise<string> {
   return new Promise((resolve) => {
     if (typeof window === "undefined") {
-      resolve(imageFile);
+      resolve("");
       return;
     }
 
-    const img = new Image();
     const reader = new FileReader();
-
     reader.onload = (e) => {
-      img.src = e.target?.result as string;
-    };
+      const dataUrl = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 1600;
+          let width = img.width;
+          let height = img.height;
 
-    reader.onerror = () => resolve(imageFile);
+          // If within bounds, return original dataUrl directly
+          if (width <= maxDim && height <= maxDim) {
+            resolve(dataUrl);
+            return;
+          }
 
-    img.onload = () => {
-      try {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          resolve(imageFile);
-          return;
-        }
-
-        // Optimal OCR dimension: max 1600px width/height
-        const maxDim = 1600;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDim || height > maxDim) {
           if (width > height) {
             height = Math.round((height * maxDim) / width);
             width = maxDim;
@@ -42,83 +33,88 @@ export async function optimizeImageForOcr(imageFile: File): Promise<Blob> {
             width = Math.round((width * maxDim) / height);
             height = maxDim;
           }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(dataUrl);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.9));
+        } catch {
+          resolve(dataUrl);
         }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw image onto canvas
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            resolve(blob || imageFile);
-          },
-          "image/jpeg",
-          0.85
-        );
-      } catch (err) {
-        resolve(imageFile);
-      }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
     };
-
-    reader.readAsDataURL(imageFile);
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(file);
   });
 }
 
 /**
- * Optical Character Recognition (OCR) Engine with fast server execution and progress simulation.
+ * Optical Character Recognition (OCR) Engine with progress reporting.
  */
 export async function performOcr(
   imageFile: File,
   onProgress?: (percent: number, message: string) => void
 ): Promise<ExtractedDocumentData> {
-  onProgress?.(15, "Optimizing image resolution for fast OCR...");
+  onProgress?.(15, "Optimizing image clarity for OCR...");
 
-  let optimizedBlob: Blob;
-  try {
-    optimizedBlob = await optimizeImageForOcr(imageFile);
-  } catch (optErr) {
-    optimizedBlob = imageFile;
-  }
+  const dataUrl = await fileToOptimizedDataUrl(imageFile);
 
-  onProgress?.(30, "Scanning image with OCR engine...");
+  onProgress?.(30, "Scanning characters with neural OCR engine...");
 
-  // Progress simulation ticker to provide live visual feedback
+  // Progress ticker for responsive UI
   let currentPct = 30;
-  const progressInterval = setInterval(() => {
+  const ticker = setInterval(() => {
     if (currentPct < 85) {
-      currentPct += Math.floor(Math.random() * 8) + 4;
+      currentPct += Math.floor(Math.random() * 6) + 3;
       onProgress?.(
         Math.min(85, currentPct),
-        "Recognizing text characters and line structures..."
+        "Recognizing text characters and document layout..."
       );
     }
-  }, 400);
+  }, 300);
 
   try {
-    const formData = new FormData();
-    formData.append("file", optimizedBlob, imageFile.name || "image.jpg");
-
-    const res = await fetch("/api/ocr", {
+    let res = await fetch("/api/ocr", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ image: dataUrl }),
     });
 
-    clearInterval(progressInterval);
+    // If JSON fails, fallback to FormData
+    if (!res.ok) {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      res = await fetch("/api/ocr", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
+    clearInterval(ticker);
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
       throw new Error(errData.error || `Server OCR returned status ${res.status}`);
     }
 
-    onProgress?.(92, "Structuring extracted text...");
+    onProgress?.(92, "Structuring extracted text and key points...");
     const data: ExtractedDocumentData = await res.json();
     onProgress?.(100, "OCR text extraction complete!");
     return data;
   } catch (error: any) {
-    clearInterval(progressInterval);
-    console.error("OCR Error:", error);
+    clearInterval(ticker);
+    console.error("OCR Extraction Error:", error);
     throw new Error(`OCR processing failed: ${error.message || error}`);
   }
 }

@@ -2,56 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { createWorker } from "tesseract.js";
 import { ExtractedDocumentData } from "@/types";
 
-// Singleton worker cache to avoid reloading WASM and language weights on every request
-let globalWorker: any = null;
-let workerInitPromise: Promise<any> | null = null;
-
-async function getOcrWorker() {
-  if (globalWorker) return globalWorker;
-
-  if (!workerInitPromise) {
-    workerInitPromise = (async () => {
-      try {
-        const worker = await createWorker("eng", 1, {
-          cacheMethod: "readOnly",
-          gzip: true,
-        });
-        globalWorker = worker;
-        return worker;
-      } catch (err) {
-        workerInitPromise = null;
-        throw err;
-      }
-    })();
-  }
-
-  return workerInitPromise;
-}
+export const maxDuration = 60; // Allow sufficient timeout for OCR
 
 export async function POST(req: NextRequest) {
+  let worker: any = null;
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
+    let buffer: Buffer;
 
-    if (!file) {
-      return NextResponse.json({ error: "No image file provided." }, { status: 400 });
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      if (!body.image) {
+        return NextResponse.json({ error: "Missing image data in request." }, { status: 400 });
+      }
+      const base64Data = body.image.replace(/^data:image\/\w+;base64,/, "");
+      buffer = Buffer.from(base64Data, "base64");
+    } else {
+      const formData = await req.formData();
+      const file = formData.get("file") as File;
+
+      if (!file) {
+        return NextResponse.json({ error: "No image file provided." }, { status: 400 });
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Create fresh worker to prevent deadlock across requests
+    worker = await createWorker("eng");
+    const result = await worker.recognize(buffer);
+    await worker.terminate();
+    worker = null;
 
-    // Use fast cached worker
-    let result;
-    try {
-      const worker = await getOcrWorker();
-      result = await worker.recognize(buffer);
-    } catch (workerErr) {
-      console.warn("Cached worker failed, using fallback recognize:", workerErr);
-      const Tesseract = require("tesseract.js");
-      result = await Tesseract.recognize(buffer, "eng");
-    }
-
-    const rawText = result.data.text || "";
+    const rawText = result?.data?.text || "";
     const cleanText = rawText
       .replace(/\r\n/g, "\n")
       .replace(/[ \t]+/g, " ")
@@ -63,15 +48,15 @@ export async function POST(req: NextRequest) {
     const charCount = cleanText.length;
     const paragraphCount = cleanText.split(/\n\s*\n/).filter(Boolean).length || 1;
     const estimatedReadingMinutes = Math.max(1, Math.ceil(wordCount / 200));
-    const confidence = (result.data.confidence || 85) / 100;
+    const confidence = (result?.data?.confidence || 85) / 100;
 
     const data: ExtractedDocumentData = {
-      rawText: rawText.trim(),
-      cleanText,
+      rawText: rawText.trim() || "No text detected in image.",
+      cleanText: cleanText || "No text detected in image.",
       pages: [
         {
           pageNumber: 1,
-          text: cleanText,
+          text: cleanText || "No text detected in image.",
           confidence,
         },
       ],
@@ -85,6 +70,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(data);
   } catch (error: any) {
+    if (worker) {
+      try {
+        await worker.terminate();
+      } catch (tErr) {
+        // ignore
+      }
+    }
     console.error("Server OCR Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to process image OCR." },

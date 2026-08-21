@@ -24,17 +24,26 @@ const STOP_WORDS = new Set([
 ]);
 
 export function splitSentences(text: string): string[] {
-  if (!text) return [];
+  if (!text || !text.trim()) return [];
   const cleaned = text
     .replace(/\r\n/g, "\n")
     .replace(/([.!?])\s*(?=[A-Z0-9])/g, "$1|SPLIT|")
     .replace(/\n\s*\n/g, "|SPLIT|")
     .replace(/\n[-*•]\s*/g, "|SPLIT|• ");
 
-  return cleaned
+  let sents = cleaned
     .split("|SPLIT|")
     .map((s) => s.trim().replace(/^[-*•\d.)\s]+/, "").trim())
-    .filter((s) => s.length > 20 && /[a-zA-Z]/.test(s));
+    .filter((s) => s.length > 5 && /[a-zA-Z0-9]/.test(s));
+
+  if (sents.length === 0) {
+    sents = text
+      .split("\n")
+      .map((l) => l.trim().replace(/^[-*•\d.)\s]+/, "").trim())
+      .filter((l) => l.length > 0);
+  }
+
+  return sents;
 }
 
 export function extractDocumentEntities(text: string): ExtractedEntities {
@@ -73,10 +82,10 @@ export function extractDocumentEntities(text: string): ExtractedEntities {
 
   return {
     datesAndDeadlines: dates.length > 0 ? dates : ["Not explicitly specified"],
-    metricsAndNumbers: metrics.length > 0 ? metrics : ["Key quantitative values identified"],
-    keyTermsAndTopics: keyTerms,
-    actionItems: actionItems.length > 0 ? actionItems : [sentences[0] || "Review document specifications"],
-    organizationsAndNames: orgs.length > 0 ? orgs : ["Document Subject Entities"],
+    metricsAndNumbers: metrics.length > 0 ? metrics : ["Key values extracted"],
+    keyTermsAndTopics: keyTerms.length > 0 ? keyTerms : ["Document Overview"],
+    actionItems: actionItems.length > 0 ? actionItems : [sentences[0] || "Review document content"],
+    organizationsAndNames: orgs.length > 0 ? orgs : ["Document Subject"],
   };
 }
 
@@ -105,15 +114,12 @@ function scoreSentences(sentences: string[], text: string): Array<{ sentence: st
       score *= 1.35;
     }
 
-    if (sWords.length < 5) score *= 0.5;
-    if (sWords.length > 50) score *= 0.8;
-
     return { sentence, score, index };
   });
 }
 
 function buildStructuredSections(text: string, count: number): SummarySection[] {
-  const rawParagraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p.length > 40);
+  const rawParagraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p.length > 20);
   const sections: SummarySection[] = [];
 
   for (let i = 0; i < rawParagraphs.length; i++) {
@@ -148,9 +154,9 @@ function buildStructuredSections(text: string, count: number): SummarySection[] 
   if (sections.length === 0) {
     const allSents = splitSentences(text);
     sections.push({
-      title: "Main Content",
-      content: allSents.slice(0, 3).join(" "),
-      bullets: allSents.slice(3, 7),
+      title: "Extracted Content",
+      content: allSents.slice(0, 3).join(" ") || text.slice(0, 300),
+      bullets: allSents.slice(3, 7).length > 0 ? allSents.slice(3, 7) : undefined,
     });
   }
 
@@ -161,12 +167,13 @@ export function generateSmartSummary(
   text: string,
   length: SummaryLength = "medium"
 ): SummaryData {
-  const sentences = splitSentences(text);
-  const entities = extractDocumentEntities(text);
-  const scored = scoreSentences(sentences, text);
+  const clean = text.trim();
+  const sentences = splitSentences(clean);
+  const entities = extractDocumentEntities(clean);
+  const scored = scoreSentences(sentences, clean);
   const sortedByScore = [...scored].sort((a, b) => b.score - a.score);
 
-  const firstSentence = sentences[0] || "Document Summary";
+  const firstSentence = sentences[0] || (clean.length > 0 ? clean.slice(0, 100) : "Document Summary");
   const headline = firstSentence.length < 120 ? firstSentence : firstSentence.slice(0, 117) + "...";
 
   let targetSentencesCount = 3;
@@ -183,23 +190,25 @@ export function generateSmartSummary(
     sectionCount = 6;
   }
 
-  const topSentences = sortedByScore
+  let topSentences = sortedByScore
     .slice(0, targetSentencesCount)
     .sort((a, b) => a.index - b.index)
     .map((s) => s.sentence);
 
-  const overview = topSentences.slice(0, length === "short" ? 2 : 3).join(" ");
-  const keyTakeaways = topSentences.slice(length === "short" ? 1 : 2);
-
-  if (keyTakeaways.length === 0 && sentences.length > 1) {
-    keyTakeaways.push(...sentences.slice(1, 4));
+  if (topSentences.length === 0) {
+    topSentences = [clean || "Text extracted from document."];
   }
 
-  const sections = buildStructuredSections(text, sectionCount);
+  const overview = topSentences.slice(0, length === "short" ? 2 : 3).join(" ") || clean;
+  let keyTakeaways = topSentences.slice(length === "short" ? 1 : 2);
 
-  const totalWords = overview.split(/\s+/).length +
-    keyTakeaways.reduce((acc, t) => acc + t.split(/\s+/).length, 0) +
-    sections.reduce((acc, s) => acc + s.content.split(/\s+/).length, 0);
+  if (keyTakeaways.length === 0) {
+    keyTakeaways = sentences.length > 0 ? sentences.slice(0, 3) : [clean || "Summary extracted successfully."];
+  }
+
+  const sections = buildStructuredSections(clean, sectionCount);
+
+  const totalWords = clean.split(/\s+/).filter(Boolean).length;
 
   return {
     length,
