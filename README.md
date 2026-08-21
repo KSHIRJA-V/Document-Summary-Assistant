@@ -35,7 +35,7 @@ A clean and intuitive document intelligence application to upload PDF files and 
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 - **Framework**: Next.js 14 (App Router, React 18)
 - **Language**: TypeScript
