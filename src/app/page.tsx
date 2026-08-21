@@ -22,7 +22,7 @@ import { generateAllAiSummaries } from "@/lib/ai-summarizer";
 
 export default function HomePage() {
   const [settings, setSettings] = useState<UserAppSettings>({
-    theme: "dark",
+    theme: "light",
     modelProvider: "gemini",
   });
 
@@ -40,15 +40,21 @@ export default function HomePage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      document.documentElement.classList.add("dark");
       try {
         const saved = localStorage.getItem("doc_assistant_ai_settings");
         if (saved) {
           const parsed = JSON.parse(saved);
           setSettings((prev) => ({ ...prev, ...parsed }));
+          if (parsed.theme === "dark") {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+        } else {
+          document.documentElement.classList.remove("dark");
         }
       } catch (e) {
-        // ignore
+        document.documentElement.classList.remove("dark");
       }
     }
   }, []);
