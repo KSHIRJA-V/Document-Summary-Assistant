@@ -1,20 +1,24 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { UploadCloud, FileType, Image as ImageIcon, ArrowRight, AlertCircle, Layers } from "lucide-react";
+import { UploadCloud, FileType, Image as ImageIcon, ArrowRight, AlertCircle, Layers, History, Clock } from "lucide-react";
 import { SAMPLE_DOCUMENTS } from "@/lib/sample-documents";
-import { SampleDocPreset } from "@/types";
+import { SampleDocPreset, SessionDocumentItem } from "@/types";
 
 interface DocumentUploaderProps {
   onFileSelected: (file: File) => void;
   onSampleSelected: (sample: SampleDocPreset) => void;
   onRawTextSubmitted: (text: string, title: string) => void;
+  sessionHistory?: SessionDocumentItem[];
+  onSelectSessionDoc?: (item: SessionDocumentItem) => void;
 }
 
 export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   onFileSelected,
   onSampleSelected,
   onRawTextSubmitted,
+  sessionHistory = [],
+  onSelectSessionDoc,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [customText, setCustomText] = useState("");
@@ -85,6 +89,58 @@ export const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-8">
       
+      {/* Session History Section (If documents have been processed in this session) */}
+      {sessionHistory.length > 0 && (
+        <div className="mb-8 p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+          <div className="flex items-center space-x-2 mb-3">
+            <History className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Recent Documents in this Session ({sessionHistory.length})
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {sessionHistory.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => onSelectSessionDoc?.(item)}
+                className="group p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-emerald-500 bg-slate-50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 cursor-pointer transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1 font-semibold uppercase">
+                      {item.type === "pdf" ? (
+                        <FileType className="w-3.5 h-3.5 text-red-500" />
+                      ) : (
+                        <ImageIcon className="w-3.5 h-3.5 text-blue-500" />
+                      )}
+                      {item.type}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {item.timestamp}
+                    </span>
+                  </div>
+
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    {item.name}
+                  </h4>
+                </div>
+
+                <div className="mt-2.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 dark:text-slate-400 font-mono">
+                    {item.wordCount.toLocaleString()} words
+                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                    Open <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Upload Container */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
         

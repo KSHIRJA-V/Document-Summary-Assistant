@@ -11,6 +11,7 @@ import {
   DocumentAnalysisResult,
   ProgressState,
   SampleDocPreset,
+  SessionDocumentItem,
   UploadedDocument,
   UserAppSettings,
 } from "@/types";
@@ -25,6 +26,7 @@ export default function HomePage() {
 
   const [uploadedDoc, setUploadedDoc] = useState<UploadedDocument | null>(null);
   const [analysisResult, setAnalysisResult] = useState<DocumentAnalysisResult | null>(null);
+  const [sessionHistory, setSessionHistory] = useState<SessionDocumentItem[]>([]);
   const [progressState, setProgressState] = useState<ProgressState>({
     step: "idle",
     progress: 0,
@@ -47,6 +49,36 @@ export default function HomePage() {
     setUploadedDoc(null);
     setAnalysisResult(null);
     setProgressState({ step: "idle", progress: 0, message: "" });
+  };
+
+  const handleSelectSessionDoc = (item: SessionDocumentItem) => {
+    setUploadedDoc(item.document);
+    setAnalysisResult(item.analysis);
+    setProgressState({ step: "ready", progress: 100, message: "Ready!" });
+  };
+
+  const handleClearSessionHistory = () => {
+    setSessionHistory([]);
+  };
+
+  const addToSessionHistory = (doc: UploadedDocument, analysis: DocumentAnalysisResult) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const historyItem: SessionDocumentItem = {
+      id: doc.id,
+      name: doc.name,
+      type: doc.type,
+      size: doc.size,
+      wordCount: analysis.extracted.wordCount,
+      timestamp: timeStr,
+      document: doc,
+      analysis,
+    };
+
+    setSessionHistory((prev) => {
+      // Remove previous duplicate if same name
+      const filtered = prev.filter((item) => item.name !== doc.name && item.id !== doc.id);
+      return [historyItem, ...filtered];
+    });
   };
 
   const handleFileSelected = async (file: File) => {
@@ -129,6 +161,7 @@ export default function HomePage() {
       });
 
       setAnalysisResult(completeResult);
+      addToSessionHistory(doc, completeResult);
     } catch (error: any) {
       console.error("Processing failed:", error);
       setProgressState({
@@ -185,10 +218,13 @@ export default function HomePage() {
 
         const summaries = generateAllSummaries(sample.sampleText);
 
-        setAnalysisResult({
+        const completeResult: DocumentAnalysisResult = {
           extracted: extractedData,
           summaries,
-        });
+        };
+
+        setAnalysisResult(completeResult);
+        addToSessionHistory(doc, completeResult);
 
         setProgressState({
           step: "ready",
@@ -234,10 +270,13 @@ export default function HomePage() {
 
       const summaries = generateAllSummaries(text);
 
-      setAnalysisResult({
+      const completeResult: DocumentAnalysisResult = {
         extracted: extractedData,
         summaries,
-      });
+      };
+
+      setAnalysisResult(completeResult);
+      addToSessionHistory(doc, completeResult);
 
       setProgressState({
         step: "ready",
@@ -256,6 +295,10 @@ export default function HomePage() {
           onUpdateSettings={handleUpdateSettings}
           onReset={handleReset}
           hasDocument={!!uploadedDoc && progressState.step === "ready"}
+          sessionHistory={sessionHistory}
+          currentDocId={uploadedDoc?.id}
+          onSelectSessionDoc={handleSelectSessionDoc}
+          onClearSessionHistory={handleClearSessionHistory}
         />
 
         {!uploadedDoc && <HeroBanner />}
@@ -266,6 +309,8 @@ export default function HomePage() {
               onFileSelected={handleFileSelected}
               onSampleSelected={handleSampleSelected}
               onRawTextSubmitted={handleRawTextSubmitted}
+              sessionHistory={sessionHistory}
+              onSelectSessionDoc={handleSelectSessionDoc}
             />
           )}
 
@@ -284,6 +329,8 @@ export default function HomePage() {
               settings={settings}
               onReset={handleReset}
               onOpenExportModal={() => setIsExportOpen(true)}
+              sessionHistory={sessionHistory}
+              onSelectSessionDoc={handleSelectSessionDoc}
             />
           )}
         </main>

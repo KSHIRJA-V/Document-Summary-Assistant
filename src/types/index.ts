@@ -82,6 +82,17 @@ export interface DocumentAnalysisResult {
   };
 }
 
+export interface SessionDocumentItem {
+  id: string;
+  name: string;
+  type: DocumentType;
+  size: number;
+  wordCount: number;
+  timestamp: string;
+  document: UploadedDocument;
+  analysis: DocumentAnalysisResult;
+}
+
 export interface SampleDocPreset {
   id: string;
   title: string;
