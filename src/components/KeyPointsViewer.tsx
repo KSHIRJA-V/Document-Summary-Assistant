@@ -25,24 +25,24 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
           <span>Action Items & Tasks</span>
         </h3>
 
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {entities.actionItems.map((action, idx) => {
             const isChecked = !!checkedItems[idx];
             return (
               <div
                 key={idx}
                 onClick={() => toggleCheck(idx)}
-                className={`p-3 rounded-lg border flex items-start space-x-3 cursor-pointer transition-all ${
+                className={`p-3.5 rounded-lg border flex items-start space-x-3 cursor-pointer transition-all ${
                   isChecked
                     ? "bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 opacity-60"
-                    : "bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800"
+                    : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500"
                 }`}
               >
                 <div
                   className={`mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-all ${
                     isChecked
                       ? "bg-emerald-600 border-emerald-600 text-white"
-                      : "border-slate-300 dark:border-slate-600"
+                      : "border-slate-400 dark:border-slate-500 bg-white dark:bg-slate-700"
                   }`}
                 >
                   {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
@@ -52,7 +52,7 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
                   className={`text-xs sm:text-sm leading-relaxed ${
                     isChecked
                       ? "line-through text-slate-400 dark:text-slate-500"
-                      : "text-slate-800 dark:text-slate-200"
+                      : "text-slate-800 dark:text-slate-100 font-medium"
                   }`}
                 >
                   {action}
@@ -76,7 +76,7 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
             {entities.datesAndDeadlines.map((date, idx) => (
               <span
                 key={idx}
-                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
               >
                 {date}
               </span>
@@ -95,7 +95,7 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
             {entities.metricsAndNumbers.map((metric, idx) => (
               <span
                 key={idx}
-                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+                className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
               >
                 {metric}
               </span>
@@ -119,7 +119,7 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
             {entities.keyTermsAndTopics.map((term, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
+                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
               >
                 #{term}
               </span>
@@ -138,7 +138,7 @@ export const KeyPointsViewer: React.FC<KeyPointsViewerProps> = ({ entities }) =>
             {entities.organizationsAndNames.map((org, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300"
+                className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200"
               >
                 {org}
               </span>
