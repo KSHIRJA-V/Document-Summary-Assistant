@@ -4,7 +4,7 @@ A clean and intuitive document intelligence application to upload PDF files and 
 
 ---
 
-## 🌟 Features
+##  Features
 
 ### 1. Document Upload
 - Supports **PDF** files and **Image** files (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`).
@@ -44,31 +44,3 @@ A clean and intuitive document intelligence application to upload PDF files and 
 - **OCR Engine**: `Tesseract.js`
 - **PDF Export**: `jsPDF`
 - **Icons**: Lucide React
-
----
-
-## 🚀 Running the Project Locally
-
-### Prerequisites
-- Node.js 18+ or 20+ or 22+
-- npm
-
-### Setup
-```bash
-# Navigate to the project directory
-cd "C:\2-Kshirja\GitHub\Document Scanner"
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Production Build
-```bash
-npm run build
-npm run start
-```
