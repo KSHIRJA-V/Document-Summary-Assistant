@@ -1,5 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createWorker } from "tesseract.js";
 import { ExtractedDocumentData } from "@/types";
+
+// Singleton worker cache to avoid reloading WASM and language weights on every request
+let globalWorker: any = null;
+let workerInitPromise: Promise<any> | null = null;
+
+async function getOcrWorker() {
+  if (globalWorker) return globalWorker;
+
+  if (!workerInitPromise) {
+    workerInitPromise = (async () => {
+      try {
+        const worker = await createWorker("eng", 1, {
+          cacheMethod: "readOnly",
+          gzip: true,
+        });
+        globalWorker = worker;
+        return worker;
+      } catch (err) {
+        workerInitPromise = null;
+        throw err;
+      }
+    })();
+  }
+
+  return workerInitPromise;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,9 +40,16 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Server-side Tesseract.js execution
-    const Tesseract = require("tesseract.js");
-    const result = await Tesseract.recognize(buffer, "eng");
+    // Use fast cached worker
+    let result;
+    try {
+      const worker = await getOcrWorker();
+      result = await worker.recognize(buffer);
+    } catch (workerErr) {
+      console.warn("Cached worker failed, using fallback recognize:", workerErr);
+      const Tesseract = require("tesseract.js");
+      result = await Tesseract.recognize(buffer, "eng");
+    }
 
     const rawText = result.data.text || "";
     const cleanText = rawText
