@@ -7,6 +7,7 @@ import { DocumentUploader } from "@/components/DocumentUploader";
 import { ProcessingProgress } from "@/components/ProcessingProgress";
 import { DocumentWorkbench } from "@/components/DocumentWorkbench";
 import { ExportModal } from "@/components/ExportModal";
+import { ModelSettingsModal } from "@/components/ModelSettingsModal";
 import {
   DocumentAnalysisResult,
   ProgressState,
@@ -17,11 +18,12 @@ import {
 } from "@/types";
 import { parsePdfFile } from "@/lib/pdf-parser";
 import { performOcr } from "@/lib/ocr-engine";
-import { generateAllSummaries } from "@/lib/summarizer";
+import { generateAllAiSummaries } from "@/lib/ai-summarizer";
 
 export default function HomePage() {
   const [settings, setSettings] = useState<UserAppSettings>({
     theme: "dark",
+    modelProvider: "gemini",
   });
 
   const [uploadedDoc, setUploadedDoc] = useState<UploadedDocument | null>(null);
@@ -34,10 +36,20 @@ export default function HomePage() {
   });
 
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       document.documentElement.classList.add("dark");
+      try {
+        const saved = localStorage.getItem("doc_assistant_ai_settings");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setSettings((prev) => ({ ...prev, ...parsed }));
+        }
+      } catch (e) {
+        // ignore
+      }
     }
   }, []);
 
@@ -75,10 +87,40 @@ export default function HomePage() {
     };
 
     setSessionHistory((prev) => {
-      // Remove previous duplicate if same name
       const filtered = prev.filter((item) => item.name !== doc.name && item.id !== doc.id);
       return [historyItem, ...filtered];
     });
+  };
+
+  const processSummaryWithAi = async (cleanText: string) => {
+    let apiKey = settings.geminiApiKey;
+    if (settings.modelProvider === "openai") apiKey = settings.openaiApiKey;
+    if (settings.modelProvider === "groq") apiKey = settings.groqApiKey;
+
+    // Call /api/summarize route which uses the AI model
+    try {
+      const res = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: cleanText,
+          all: true,
+          provider: settings.modelProvider,
+          apiKey,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.summaries) {
+          return data.summaries;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("Server summarize API failed, using client fallback:", apiErr);
+    }
+
+    return await generateAllAiSummaries(cleanText, settings.modelProvider, apiKey);
   };
 
   const handleFileSelected = async (file: File) => {
@@ -145,10 +187,10 @@ export default function HomePage() {
       setProgressState({
         step: "generating_summary",
         progress: 85,
-        message: "Generating summary and extracting key points...",
+        message: "Generating smart AI summary and key points...",
       });
 
-      const summaries = generateAllSummaries(extractedData.cleanText);
+      const summaries = await processSummaryWithAi(extractedData.cleanText);
 
       const completeResult: DocumentAnalysisResult = {
         extracted: extractedData,
@@ -192,51 +234,55 @@ export default function HomePage() {
       message: `Loading ${sample.title}...`,
     });
 
-    setTimeout(() => {
+    try {
       setProgressState({
         step: "generating_summary",
         progress: 75,
         message: "Generating smart summary...",
       });
 
-      setTimeout(() => {
-        const words = sample.sampleText.split(/\s+/).filter(Boolean);
-        const extractedData = {
-          rawText: sample.sampleText,
-          cleanText: sample.sampleText,
-          pages: sample.pages.map((p, idx) => ({
-            pageNumber: idx + 1,
-            text: p,
-            confidence: 0.99,
-          })),
-          wordCount: words.length,
-          charCount: sample.sampleText.length,
-          paragraphCount: sample.pages.length,
-          estimatedReadingMinutes: Math.max(1, Math.ceil(words.length / 200)),
-          language: "en",
+      const words = sample.sampleText.split(/\s+/).filter(Boolean);
+      const extractedData = {
+        rawText: sample.sampleText,
+        cleanText: sample.sampleText,
+        pages: sample.pages.map((p, idx) => ({
+          pageNumber: idx + 1,
+          text: p,
           confidence: 0.99,
-        };
+        })),
+        wordCount: words.length,
+        charCount: sample.sampleText.length,
+        paragraphCount: sample.pages.length,
+        estimatedReadingMinutes: Math.max(1, Math.ceil(words.length / 200)),
+        language: "en",
+        confidence: 0.99,
+      };
 
-        const summaries = generateAllSummaries(sample.sampleText);
+      const summaries = await processSummaryWithAi(sample.sampleText);
 
-        const completeResult: DocumentAnalysisResult = {
-          extracted: extractedData,
-          summaries,
-        };
+      const completeResult: DocumentAnalysisResult = {
+        extracted: extractedData,
+        summaries,
+      };
 
-        setAnalysisResult(completeResult);
-        addToSessionHistory(doc, completeResult);
+      setAnalysisResult(completeResult);
+      addToSessionHistory(doc, completeResult);
 
-        setProgressState({
-          step: "ready",
-          progress: 100,
-          message: "Ready!",
-        });
-      }, 350);
-    }, 300);
+      setProgressState({
+        step: "ready",
+        progress: 100,
+        message: "Ready!",
+      });
+    } catch (err: any) {
+      setProgressState({
+        step: "error",
+        progress: 0,
+        message: err.message || "Failed to analyze sample.",
+      });
+    }
   };
 
-  const handleRawTextSubmitted = (text: string, title: string) => {
+  const handleRawTextSubmitted = async (text: string, title: string) => {
     const docId = `text-${Date.now()}`;
     const words = text.split(/\s+/).filter(Boolean);
 
@@ -256,7 +302,7 @@ export default function HomePage() {
       message: "Analyzing text...",
     });
 
-    setTimeout(() => {
+    try {
       const extractedData = {
         rawText: text,
         cleanText: text,
@@ -269,7 +315,7 @@ export default function HomePage() {
         confidence: 1.0,
       };
 
-      const summaries = generateAllSummaries(text);
+      const summaries = await processSummaryWithAi(text);
 
       const completeResult: DocumentAnalysisResult = {
         extracted: extractedData,
@@ -284,7 +330,13 @@ export default function HomePage() {
         progress: 100,
         message: "Ready!",
       });
-    }, 300);
+    } catch (err: any) {
+      setProgressState({
+        step: "error",
+        progress: 0,
+        message: err.message || "Failed to analyze text.",
+      });
+    }
   };
 
   return (
@@ -300,6 +352,7 @@ export default function HomePage() {
           currentDocId={uploadedDoc?.id}
           onSelectSessionDoc={handleSelectSessionDoc}
           onClearSessionHistory={handleClearSessionHistory}
+          onOpenSettingsModal={() => setIsSettingsOpen(true)}
         />
 
         {!uploadedDoc && <HeroBanner />}
@@ -350,6 +403,13 @@ export default function HomePage() {
         documentTitle={uploadedDoc?.name || "Document"}
         analysis={analysisResult!}
         activeLength="medium"
+      />
+
+      <ModelSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onUpdateSettings={handleUpdateSettings}
       />
 
     </div>

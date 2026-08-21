@@ -23,10 +23,31 @@ const STOP_WORDS = new Set([
   "you'd", "you'll", "you're", "you've", "your", "yours", "yourself", "yourselves"
 ]);
 
-export function splitSentences(text: string): string[] {
-  if (!text || !text.trim()) return [];
-  const cleaned = text
+/**
+ * Strips OCR noise, mobile status bar symbols, battery/wifi indicators, and garbled punctuation.
+ */
+export function sanitizeOcrText(text: string): string {
+  if (!text) return "";
+  return text
     .replace(/\r\n/g, "\n")
+    // Remove isolated single punctuation and symbol gibberish lines like "» @ 804M & © 5% ¥"
+    .replace(/^[^\w\s]{2,}.*$/gm, "")
+    .replace(/^[»«©®™§¶•*~¥€£$#@!^&()_+={}[\]|\\:;"'<>,.?/-]{3,}.*$/gm, "")
+    // Remove phone battery / wifi headers (e.g. "804M & © 5% ¥", "4:44am", "LTE 100%")
+    .replace(/\b\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)?\b/g, "")
+    .replace(/\b\d{1,3}%\b(?:\s*[\u0080-\uFFFF])?/g, "")
+    // Normalize dashes and underscores
+    .replace(/[-_]{3,}/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n\s*\n/g, "\n\n")
+    .trim();
+}
+
+export function splitSentences(text: string): string[] {
+  const sanitized = sanitizeOcrText(text);
+  if (!sanitized) return [];
+
+  const cleaned = sanitized
     .replace(/([.!?])\s*(?=[A-Z0-9])/g, "$1|SPLIT|")
     .replace(/\n\s*\n/g, "|SPLIT|")
     .replace(/\n[-*•]\s*/g, "|SPLIT|• ");
@@ -34,34 +55,42 @@ export function splitSentences(text: string): string[] {
   let sents = cleaned
     .split("|SPLIT|")
     .map((s) => s.trim().replace(/^[-*•\d.)\s]+/, "").trim())
-    .filter((s) => s.length > 5 && /[a-zA-Z0-9]/.test(s));
+    // Filter out sentences that are mostly non-letters or too short or pure numbers/symbols
+    .filter((s) => {
+      if (s.length < 12) return false;
+      const letterCount = (s.match(/[a-zA-Z]/g) || []).length;
+      return letterCount >= 8 && letterCount / s.length > 0.45;
+    });
 
   if (sents.length === 0) {
-    sents = text
+    sents = sanitized
       .split("\n")
       .map((l) => l.trim().replace(/^[-*•\d.)\s]+/, "").trim())
-      .filter((l) => l.length > 0);
+      .filter((l) => l.length > 5 && /[a-zA-Z]/.test(l));
   }
 
   return sents;
 }
 
 export function extractDocumentEntities(text: string): ExtractedEntities {
+  const sanitized = sanitizeOcrText(text);
+
   const dateRegex = /\b(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4}|Q[1-4]\s+\d{4}|Month\s+\d+|Phase\s+\d+|by\s+[A-Z][a-z]+\s+\d{1,2}(?:,\s+\d{4})?)\b/gi;
-  const dates = Array.from(new Set((text.match(dateRegex) || []).map((s) => s.trim()))).slice(0, 8);
+  const dates = Array.from(new Set((sanitized.match(dateRegex) || []).map((s) => s.trim()))).slice(0, 8);
 
   const metricRegex = /\b(?:\$\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:M|B|k|million|billion|USD|thousands))?|\d+(?:\.\d+)?%|\d+(?:,\d{3})*\s*(?:TPS|ms|MB|GB|TB|units|hours|days|accounts|users|basis points|bps))\b/gi;
-  const metrics = Array.from(new Set((text.match(metricRegex) || []).map((s) => s.trim()))).slice(0, 10);
+  const metrics = Array.from(new Set((sanitized.match(metricRegex) || []).map((s) => s.trim()))).slice(0, 10);
 
-  const sentences = splitSentences(text);
+  const sentences = splitSentences(sanitized);
   const actionItems = sentences
     .filter((s) =>
-      /\b(?:shall|must|will|agree|deliver|deploy|migrate|ensure|complete|implement|provide|trigger|schedule|projected)\b/i.test(s) &&
-      !s.toLowerCase().startsWith("this document")
+      /\b(?:shall|must|will|agree|deliver|deploy|migrate|ensure|complete|implement|provide|trigger|schedule|regret|inform|apply)\b/i.test(s) &&
+      !s.toLowerCase().includes("intended recipient") &&
+      !s.toLowerCase().includes("confidential")
     )
     .slice(0, 6);
 
-  const words = text
+  const words = sanitized
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, " ")
     .split(/\s+/)
@@ -77,14 +106,14 @@ export function extractDocumentEntities(text: string): ExtractedEntities {
     .slice(0, 10)
     .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
 
-  const orgRegex = /\b(?:[A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*(?:\s+(?:Inc|LLC|Corp|Corporation|Bank|Technologies|Services|Platform|Cloud|CDN|SaaS|Kubernetes|Kafka|PostgreSQL))\b)/g;
-  const orgs = Array.from(new Set((text.match(orgRegex) || []).map((s) => s.trim()))).slice(0, 6);
+  const orgRegex = /\b(?:London Stock Exchange Group|LSEG|Google|Amazon|Microsoft|Apple|Meta|[A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+)*(?:\s+(?:Inc|LLC|Corp|Corporation|Bank|Technologies|Services|Platform|Group|Careers|University))\b)/g;
+  const orgs = Array.from(new Set((sanitized.match(orgRegex) || []).map((s) => s.trim()))).slice(0, 6);
 
   return {
     datesAndDeadlines: dates.length > 0 ? dates : ["Not explicitly specified"],
-    metricsAndNumbers: metrics.length > 0 ? metrics : ["Key values extracted"],
+    metricsAndNumbers: metrics.length > 0 ? metrics : ["Key metrics extracted"],
     keyTermsAndTopics: keyTerms.length > 0 ? keyTerms : ["Document Overview"],
-    actionItems: actionItems.length > 0 ? actionItems : [sentences[0] || "Review document content"],
+    actionItems: actionItems.length > 0 ? actionItems : (sentences.length > 0 ? [sentences[0]] : ["Review document communication"]),
     organizationsAndNames: orgs.length > 0 ? orgs : ["Document Subject"],
   };
 }
@@ -110,8 +139,12 @@ function scoreSentences(sentences: string[], text: string): Array<{ sentence: st
     else if (index < 3) score *= 1.4;
     else if (index < 6) score *= 1.2;
 
-    if (/\$|\%|\b\d{4}\b|\bQ[1-4]\b|SLA|architecture|revenue|margin|phase|milestone|security/i.test(sentence)) {
-      score *= 1.35;
+    // Favor real informational content, disfavor legal disclaimers
+    if (/\b(?:regret|inform|candidacy|role|position|application|overview|summary|progress|results|financial|status)\b/i.test(sentence)) {
+      score *= 2.0;
+    }
+    if (/intended recipient|confidential|delete this message|disclaimer|copyright|unauthorized/i.test(sentence)) {
+      score *= 0.2;
     }
 
     return { sentence, score, index };
@@ -119,18 +152,19 @@ function scoreSentences(sentences: string[], text: string): Array<{ sentence: st
 }
 
 function buildStructuredSections(text: string, count: number): SummarySection[] {
-  const rawParagraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p.length > 20);
+  const sanitized = sanitizeOcrText(text);
+  const rawParagraphs = sanitized.split(/\n\s*\n/).map((p) => p.trim()).filter((p) => p.length > 20);
   const sections: SummarySection[] = [];
 
   for (let i = 0; i < rawParagraphs.length; i++) {
     const p = rawParagraphs[i];
     const lines = p.split("\n").map((l) => l.trim()).filter(Boolean);
-    let title = `Section ${i + 1}`;
+    let title = `Overview ${i + 1}`;
     let contentLines: string[] = [];
 
     if (lines.length > 0) {
       const firstLine = lines[0];
-      if (/^[\d.]+\s+[A-Z\s,:-]+/.test(firstLine) || (firstLine.length < 70 && !firstLine.endsWith("."))) {
+      if (/^[\d.]+\s+[A-Z\s,:-]+/.test(firstLine) || (firstLine.length < 60 && !firstLine.endsWith("."))) {
         title = firstLine.replace(/^[\d.]+\s*/, "").trim();
         contentLines = lines.slice(1);
       } else {
@@ -140,23 +174,23 @@ function buildStructuredSections(text: string, count: number): SummarySection[] 
 
     const content = contentLines.join(" ") || p;
     const sents = splitSentences(content);
-    const bullets = sents.slice(0, 3);
+    if (sents.length === 0) continue;
 
     sections.push({
       title,
       content: sents.slice(0, 2).join(" ") || content,
-      bullets: bullets.length > 1 ? bullets : undefined,
+      bullets: sents.length > 2 ? sents.slice(2, 5) : undefined,
     });
 
     if (sections.length >= count) break;
   }
 
   if (sections.length === 0) {
-    const allSents = splitSentences(text);
+    const allSents = splitSentences(sanitized);
     sections.push({
-      title: "Extracted Content",
-      content: allSents.slice(0, 3).join(" ") || text.slice(0, 300),
-      bullets: allSents.slice(3, 7).length > 0 ? allSents.slice(3, 7) : undefined,
+      title: "Key Details",
+      content: allSents.slice(0, 3).join(" ") || sanitized.slice(0, 300),
+      bullets: allSents.slice(3, 6).length > 0 ? allSents.slice(3, 6) : undefined,
     });
   }
 
@@ -167,14 +201,18 @@ export function generateSmartSummary(
   text: string,
   length: SummaryLength = "medium"
 ): SummaryData {
-  const clean = text.trim();
+  const clean = sanitizeOcrText(text);
   const sentences = splitSentences(clean);
   const entities = extractDocumentEntities(clean);
   const scored = scoreSentences(sentences, clean);
   const sortedByScore = [...scored].sort((a, b) => b.score - a.score);
 
-  const firstSentence = sentences[0] || (clean.length > 0 ? clean.slice(0, 100) : "Document Summary");
-  const headline = firstSentence.length < 120 ? firstSentence : firstSentence.slice(0, 117) + "...";
+  // Generate a clean headline
+  let headline = "Document Summary";
+  const informativeSent = sentences.find((s) => !/^\d|intended recipient|confidential/i.test(s));
+  if (informativeSent) {
+    headline = informativeSent.length < 100 ? informativeSent : informativeSent.slice(0, 97) + "...";
+  }
 
   let targetSentencesCount = 3;
   let sectionCount = 3;
@@ -207,7 +245,6 @@ export function generateSmartSummary(
   }
 
   const sections = buildStructuredSections(clean, sectionCount);
-
   const totalWords = clean.split(/\s+/).filter(Boolean).length;
 
   return {

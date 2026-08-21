@@ -1,7 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText, Moon, Sun, RefreshCw, History, FileType, Image as ImageIcon, ChevronDown, Trash2 } from "lucide-react";
+import {
+  FileText,
+  Moon,
+  Sun,
+  RefreshCw,
+  History,
+  FileType,
+  Image as ImageIcon,
+  ChevronDown,
+  Trash2,
+  Sparkles,
+} from "lucide-react";
 import { SessionDocumentItem, UserAppSettings } from "@/types";
 
 interface NavbarProps {
@@ -13,6 +24,7 @@ interface NavbarProps {
   currentDocId?: string;
   onSelectSessionDoc?: (item: SessionDocumentItem) => void;
   onClearSessionHistory?: () => void;
+  onOpenSettingsModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentDocId,
   onSelectSessionDoc,
   onClearSessionHistory,
+  onOpenSettingsModal,
 }) => {
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
 
@@ -34,6 +47,19 @@ export const Navbar: React.FC<NavbarProps> = ({
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
+    }
+  };
+
+  const getModelLabel = () => {
+    switch (settings.modelProvider) {
+      case "gemini":
+        return "Gemini 1.5";
+      case "groq":
+        return "Groq LLM";
+      case "openai":
+        return "GPT-4o Mini";
+      default:
+        return "Local NLP";
     }
   };
 
@@ -56,6 +82,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
           
+          {/* AI Model Settings Button */}
+          {onOpenSettingsModal && (
+            <button
+              onClick={onOpenSettingsModal}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-all"
+              title="Configure AI Model & API Keys"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden sm:inline">{getModelLabel()}</span>
+            </button>
+          )}
+
           {/* Session History Dropdown */}
           {sessionHistory.length > 0 && (
             <div className="relative">
@@ -65,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title="View documents processed in this session"
               >
                 <History className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="hidden sm:inline">Session History</span>
+                <span className="hidden sm:inline">Session</span>
                 <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
                   {sessionHistory.length}
                 </span>
@@ -133,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 transition-all"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span>New Document</span>
+              <span>New</span>
             </button>
           )}
 

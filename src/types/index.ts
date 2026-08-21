@@ -105,6 +105,12 @@ export interface SampleDocPreset {
   tags: string[];
 }
 
+export type AIModelProvider = "gemini" | "openai" | "groq" | "local";
+
 export interface UserAppSettings {
   theme: "dark" | "light";
+  modelProvider: AIModelProvider;
+  geminiApiKey?: string;
+  openaiApiKey?: string;
+  groqApiKey?: string;
 }
