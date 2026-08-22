@@ -1,37 +1,47 @@
 # Document Summary Assistant
 
-A clean and intuitive document intelligence application to upload PDF files and scanned images, extract text using Optical Character Recognition (OCR), and automatically generate smart summaries and key points.
+A document intelligence web application that extracts structured text from PDF files and scanned images using Optical Character Recognition (OCR), and generates executive summaries and actionable key points.
 
 ---
 
-##  Features
+## Technical Approach Summary
+
+The Document Summary Assistant is built with Next.js 14 (App Router), TypeScript, and Tailwind CSS. The system processes documents through three core stages:
+
+1. **Document Ingestion and Parsing**: Multi-page PDF documents are parsed through a dedicated server-side extraction pipeline that preserves paragraph breaks and layout structure. For scanned documents and image files, client-side HTML5 Canvas preprocessing handles resolution normalization and contrast adjustment before routing to Tesseract.js for Optical Character Recognition.
+2. **Text Sanitization and Summarization**: Raw text passes through a domain sanitizer that removes OCR noise, status bar artifacts, email headers, citations, and table dumps. The summarizer generates multi-length summaries (Short, Medium, Long) with executive headlines, contextual overviews, and structured key takeaways.
+3. **User Interface and Export**: A tabbed workbench provides length toggling, interactive action item tracking, in-memory session history, and multi-format exports (PDF, Markdown, JSON, Plain Text).
+
+---
+
+## Core Features
 
 ### 1. Document Upload
-- Supports **PDF** files and **Image** files (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`).
-- Drag-and-drop or file picker interface for easy uploads (up to 25 MB).
-- Includes 4 built-in sample documents for instant testing.
-- Direct text paste option for quick snippet processing.
+- Supports PDF files and standard image formats (.png, .jpg, .jpeg, .webp, .bmp, .tiff) up to 25 MB.
+- Drag-and-drop file uploader and native file picker.
+- Four pre-configured sample document presets for testing.
+- Direct text paste input option.
 
-### 2. Text Extraction & OCR
-- **PDF Parsing**: Extracts text from multi-page PDFs preserving paragraph layout and structure.
-- **Optical Character Recognition (OCR)**: Uses `Tesseract.js` with canvas contrast pre-processing for scanned documents.
-- **Extracted Text Inspector**: Real-time keyword search, match highlighting, page-by-page view, word count, character count, and `.txt` download.
+### 2. Text Extraction
+- Multi-page PDF text extraction with layout and paragraph preservation.
+- Optical Character Recognition (OCR) for scanned images and screenshots via Tesseract.js.
+- Extracted text inspector with search, keyword match highlighting, page filters, word counts, and .txt download.
 
 ### 3. Smart Summary
-- **3 Summary Length Options**:
-  - **Short**: Quick executive snapshot (core headline and key points).
-  - **Medium**: Balanced summary with overview and thematic sections.
-  - **Long**: Comprehensive analysis with detailed section breakdowns.
-- One-click copy to clipboard.
+- Three selectable summary lengths:
+  - Short: Core executive snapshot and essential points.
+  - Medium: Balanced summary with context and structured sections.
+  - Long: In-depth analysis with detailed breakdowns.
+- One-click clipboard copy.
 
-### 4. Key Points Extraction
-- **Action Items & Tasks**: Interactive checklist with actionable responsibilities.
-- **Dates & Deadlines**: Extracted schedules and milestones.
-- **Numbers & Metrics**: Key financial, operational, and numerical data.
-- **Key Terms & Entities**: Important keywords and named organizations.
+### 4. Key Points and Entities
+- Interactive checklist for action items and deliverables.
+- Extraction of dates, milestones, and deadlines.
+- Extraction of quantitative metrics and financial figures.
+- Extraction of domain terminology and named organizations.
 
-### 5. Export System
-- Export summaries to **PDF**, **Markdown (.md)**, **JSON (.json)**, or **Plain Text (.txt)**.
+### 5. Multi-Format Export
+- Export summaries and extracted data to PDF, Markdown (.md), JSON (.json), and Plain Text (.txt).
 
 ---
 
@@ -40,7 +50,39 @@ A clean and intuitive document intelligence application to upload PDF files and 
 - **Framework**: Next.js 14 (App Router, React 18)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **PDF Extraction**: `pdfjs-dist`
-- **OCR Engine**: `Tesseract.js`
-- **PDF Export**: `jsPDF`
+- **PDF Extraction**: pdf-parse, pdfjs-dist
+- **OCR Engine**: Tesseract.js
+- **PDF Generation**: jsPDF
 - **Icons**: Lucide React
+- **Deployment**: Vercel
+
+---
+
+## Local Setup and Running
+
+### Prerequisites
+- Node.js 18+ or 20+
+- npm
+
+### Installation
+
+```bash
+# 1. Clone repository
+git clone https://github.com/KSHIRJA-V/Document-Summary-Assistant.git
+cd Document-Summary-Assistant
+
+# 2. Install dependencies
+npm install
+
+# 3. Start development server
+npm run dev
+```
+
+Open http://localhost:3000 in your browser.
+
+### Production Build
+
+```bash
+npm run build
+npm run start
+```
