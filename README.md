@@ -1,4 +1,5 @@
 # Document Summary Assistant
+*Active Link*: https://document-summary-assist-a5a3opkkz-kshirja-vs-projects.vercel.app/
 
 A document intelligence web application that extracts structured text from PDF files and scanned images using Optical Character Recognition (OCR), and generates executive summaries and actionable key points.
 
@@ -56,33 +57,5 @@ The Document Summary Assistant is built with Next.js 14 (App Router), TypeScript
 - **Icons**: Lucide React
 - **Deployment**: Vercel
 
----
 
-## Local Setup and Running
-
-### Prerequisites
-- Node.js 18+ or 20+
-- npm
-
-### Installation
-
-```bash
-# 1. Clone repository
-git clone https://github.com/KSHIRJA-V/Document-Summary-Assistant.git
-cd Document-Summary-Assistant
-
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
-npm run dev
-```
-
-Open http://localhost:3000 in your browser.
-
-### Production Build
-
-```bash
-npm run build
-npm run start
 ```
