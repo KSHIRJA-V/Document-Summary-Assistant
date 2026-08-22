@@ -56,6 +56,3 @@ The Document Summary Assistant is built with Next.js 14 (App Router), TypeScript
 - **PDF Generation**: jsPDF
 - **Icons**: Lucide React
 - **Deployment**: Vercel
-
-
-```
